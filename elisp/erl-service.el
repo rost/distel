@@ -357,7 +357,9 @@ When BURY is non-nil, buries the buffer instead of killing it."
   (define-key process-list-mode-map [(control m)] 'erl-show-process-info)
   (define-key process-list-mode-map [?i] 'erl-show-process-info-item)
   (define-key process-list-mode-map [?b] 'erl-show-process-backtrace)
-  (define-key process-list-mode-map [?m] 'erl-show-process-messages))
+  (define-key process-list-mode-map [?m] 'erl-show-process-messages)
+  (define-key process-list-mode-map [?n] 'next-line)
+  (define-key process-list-mode-map [?p] 'previous-line))
 
 (defun process-list-mode ()
   "Major mode for viewing Erlang process listings.
@@ -1239,6 +1241,7 @@ The match positions are erl-mfa-regexp-{module,function,arity}-match.")
 
 (defun erl-who-calls (node)
   (interactive (list (erl-target-node)))
+  (ring-insert-at-beginning erl-find-history-ring (copy-marker (point-marker)))
   (apply #'erl-find-callers
          (or (erl-read-call-mfa) (error "No call at point."))))
 
@@ -1278,11 +1281,15 @@ The match positions are erl-mfa-regexp-{module,function,arity}-match.")
 
 \\{erl-who-calls-mode-map}")
 
+(define-key erl-who-calls-mode-map (kbd "q") 'kill-this-buffer)
 (define-key erl-who-calls-mode-map (kbd "RET") 'erl-goto-caller)
+(define-key erl-who-calls-mode-map (kbd "M-.") 'erl-goto-caller)
+(define-key erl-who-calls-mode-map (kbd "M-,") 'erl-find-source-unwind)
 
 (defun erl-goto-caller ()
   "Goto the caller that is at point."
   (interactive)
+  (ring-insert-at-beginning erl-find-history-ring (copy-marker (point-marker)))
   (let ((line (get-text-property (line-beginning-position) 'line))
 	(module (get-text-property (line-beginning-position) 'module))
 	(node (or erl-nodename-cache (erl-target-node))))

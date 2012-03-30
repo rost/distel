@@ -167,9 +167,17 @@ we are standing on a variable"
   (if (eq 'font-lock-variable-name-face (get-text-property (point) 'face))
       t nil))
 
+(defvar erl-function-definition-and-call-regex
+  (concat "^" erlang-atom-regexp "\\s *(.*)\\s-*->.*(.*$")
+  "Regex for finding functions with definition and body on the same line")
+
 (defvar erl-function-definition-regex
   (concat "^" erlang-atom-regexp "\\s *(")
   "Regex for finding function definitions")
+
+(defvar erl-function-definition-with-arrow-regex
+  (concat "^" erlang-atom-regexp "\\s *(.*)\\s-*->.*")
+  "Regex for finding function definitions to the left of point")
 
 (defun erlang-in-arglist-p ()
   (if (erlang-stop-when-inside-argument-list)
@@ -180,11 +188,20 @@ we are standing on a variable"
             t nil))
     nil))
 
+(defun erlang-on-function-definition-and-call-p ()
+  (save-excursion
+    (beginning-of-line)
+    (looking-at erl-function-definition-and-call-regex)))
+
 (defun erlang-on-function-definition-p ()
   (save-excursion
     (beginning-of-line)
     (looking-at erl-function-definition-regex)))
 
+(defun erlang-point-left-of-arrow-p ()
+  (save-excursion
+    (if (looking-back erl-function-definition-with-arrow-regex)
+	nil t)))
 
 ;;; lookup related things
 
@@ -341,6 +358,11 @@ we are standing on a variable"
            (erl-find-source-pattern-under-point pattern))
           ((erlang-at-variable-p)
            (erl-find-variable-binding))
+	  ((erlang-on-function-definition-and-call-p)
+	   (cond ((erlang-point-left-of-arrow-p)
+		  (erl-who-calls (erl-target-node)))
+		 (t
+		  (erl-find-function-under-point))))
           ((erlang-on-function-definition-p)
            (erl-who-calls (erl-target-node)))
           (t
